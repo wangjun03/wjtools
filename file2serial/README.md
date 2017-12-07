@@ -1,0 +1,5 @@
+# file2serial
+
+file2serial用于将配置文件的文本逐条通过串口发送给接收设备，并记录命令发送和回复记录
+
+file2serial串口使用pySerial模块，界面使用pyqt5

@@ -21,3 +21,7 @@ default_baudrate为默认波特率
 allow_com为可选串口号，可根据需要修改，对于linux或mac，可改为tty.xxxxx
 
 allow_baudrate为可选波特率，可根据需要修改
+
+## 发送文件xxx.txt
+
+文件逐行通过串口发送，#表示注释，以#开头的行将被跳过

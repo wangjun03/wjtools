@@ -21,6 +21,7 @@ CONFIG_FILE_PATH = "f2s.cfg"
 
 def send_cmd(cmd, com_no='COM3', baud_rate=115200):
     result = []
+    res_state = False
     try:
         with serial.Serial(com_no, baud_rate, timeout=1) as ser:
             ser.write(str.encode(cmd))
@@ -29,10 +30,11 @@ def send_cmd(cmd, com_no='COM3', baud_rate=115200):
                 result.append(response)
                 response = str(ser.readline(), encoding='gbk')
             ser.close()
+            res_state = True
     except serial.serialutil.SerialException as se:
         result.append("打开串口失败！")
         result.append(str(se))
-    return result
+    return result, res_state
 
 
 def check_config_file():
@@ -163,14 +165,19 @@ class WaqsApp(QtWidgets.QMainWindow):
             s = ''
             fd = open(self.filename, 'r')
             cmd = fd.readline()
-            while cmd:
-                s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' cmd: ' + cmd + '\n'
-                results = send_cmd(cmd, self.com_no, self.baud_rate)
-                for result in results:
-                    s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' rep: ' + result + '\n'
+            res_state = True
+            while cmd and res_state:
+                if not cmd.startswith('#'):
+                    s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' cmd: ' + cmd + '\n'
+                    results, res_state = send_cmd(cmd, self.com_no, self.baud_rate)
+                    for result in results:
+                        s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' rep: ' + result + '\n'
                 cmd = fd.readline()
             self.ui.textBrowser.setText(s)
-            self.ui.statusbar.showMessage("成功上传配置:" + self.filename)
+            if res_state:
+                self.ui.statusbar.showMessage("成功上传配置:" + self.filename)
+            else:
+                self.ui.statusbar.showMessage("上传配置失败:" + self.filename)
 
 
 if __name__ == '__main__':

@@ -153,10 +153,12 @@ class WaqsApp(QtWidgets.QMainWindow):
         self.filename, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "选择配置文件",
                                                                         filter="Text Files (*.txt)")
         if isfile(self.filename):
-            s = open(self.filename, 'r').read()
+            fd = open(self.filename, 'r')
+            s = fd.read()
             self.ui.textBrowser.setText(s)
             self.setWindowTitle(self.filename)
             self.ui.statusbar.showMessage("成功打开配置文件:" + self.filename)
+            fd.close()
 
     def upload_cfg(self):
         self.com_no = self.ui.comboBox_com.currentText()
@@ -174,6 +176,7 @@ class WaqsApp(QtWidgets.QMainWindow):
                         s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' rep: ' + result + '\n'
                 cmd = fd.readline()
             self.ui.textBrowser.setText(s)
+            fd.close()
             if res_state:
                 self.ui.statusbar.showMessage("成功上传配置:" + self.filename)
             else:

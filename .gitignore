@@ -1,2 +1,5 @@
 .idea
 __pycache__
+f2s.spec
+dist
+build

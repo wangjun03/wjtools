@@ -1,0 +1,40 @@
+{
+    "proj": "xxx",
+    "id": "cc5c",
+    "freq": 3,
+    "mqtt_host": "192.168.1.37",
+    "mqtt_port": 1883,
+    "username": "bems/t01",
+    "password": "tsingcon2017",
+    "keepalive": 180,
+    "bindaddress": "0.0.0.0",
+    "topic": "test_data",
+    "data":[
+        {
+            "port": "COM5",
+            "baudrate": 9600,
+            "bytesize": 8,
+            "parity": "N",
+            "stopbits": 1,
+            "xonxoff": 0,
+            "timeout": 2.0,
+            "data":[
+                {
+                    "slave_id": 3,
+                    "addr": 19,
+                    "len": 2
+                },
+                {
+                    "slave_id": 2,
+                    "addr": 19,
+                    "len": 2
+                },
+                {
+                    "slave_id": 1,
+                    "addr": 19,
+                    "len": 2
+                }
+            ]
+        }
+    ]
+}

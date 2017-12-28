@@ -13,17 +13,18 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from os.path import isfile
 import datetime
 import serial
+import threading
 
 from f2s_ui import Ui_MainWindow
 
 CONFIG_FILE_PATH = "f2s.cfg"
 
 
-def send_cmd(cmd, com_no='COM3', baud_rate=115200):
+def send_cmd(cmd, com_no='COM3', baud_rate=115200, timeout=1):
     result = []
     res_state = False
     try:
-        with serial.Serial(com_no, baud_rate, timeout=1) as ser:
+        with serial.Serial(com_no, baud_rate, timeout=timeout) as ser:
             ser.write(str.encode(cmd))
             response = str(ser.readline(), encoding='gbk')
             while response:
@@ -59,7 +60,7 @@ def write_config(config, selection, option, value):
     config.set(selection, option, value)
 
 
-class WaqsApp(QtWidgets.QMainWindow):
+class File2SerialApp(QtWidgets.QMainWindow):
     def __init__(self):
         check_config_file()
         self.config = parser.ConfigParser()
@@ -72,6 +73,7 @@ class WaqsApp(QtWidgets.QMainWindow):
         self.ui.statusbar.showMessage("未打开配置")
         self.com_no = get_config(self.config, "COMM", "default_com", "COM3")
         self.baud_rate = int(get_config(self.config, "COMM", "default_baudrate", "115200"))
+        self.timeout = float(get_config(self.config, "COMM", "timeout", "1.0"))
         self.coms = get_config(self.config, "COMM", "allow_com", "COM3")
         self.bauds = get_config(self.config, "COMM", "allow_baudrate", "115200")
         for com_no in self.coms.split(','):
@@ -80,6 +82,8 @@ class WaqsApp(QtWidgets.QMainWindow):
         for baud in self.bauds.split(','):
             self.ui.comboBox_baud.addItem(baud)
         self.ui.comboBox_baud.setCurrentText(str(self.baud_rate))
+
+        self.ui.doubleSpinBox.setValue(self.timeout)
         # com_group = QtWidgets.QActionGroup(self)
         # self.ui.actionCOM1.setActionGroup(com_group)
         # self.ui.actionCOM2.setActionGroup(com_group)
@@ -93,8 +97,9 @@ class WaqsApp(QtWidgets.QMainWindow):
         # self.ui.action9600.setActionGroup(botte_group)
         # self.ui.action115200.setActionGroup(botte_group)
         self.ui.actiondakai.triggered.connect(self.file_dialog)
-        self.ui.actionupload.triggered.connect(self.upload_cfg)
+        self.ui.actionupload.triggered.connect(self.upliad_cfg_action)
         self.filename = ""
+        self.cmd_cnt = 0
 
     def read_settings(self):
         # 宽度 高度
@@ -124,6 +129,7 @@ class WaqsApp(QtWidgets.QMainWindow):
     def write_settings(self):
         self.com_no = self.ui.comboBox_com.currentText()
         self.baud_rate = int(self.ui.comboBox_baud.currentText())
+        self.timeout = self.ui.doubleSpinBox.value()
         # 宽度、高度
         write_config(self.config, "Display", "height", str(self.size().height()))
         write_config(self.config, "Display", "width", str(self.size().width()))
@@ -142,6 +148,8 @@ class WaqsApp(QtWidgets.QMainWindow):
 
         write_config(self.config, "COMM", "default_baudrate", str(self.baud_rate))
 
+        write_config(self.config, "COMM", "timeout", str(self.timeout))
+
         write_config(self.config, "COMM", "allow_com", str(self.coms))
 
         write_config(self.config, "COMM", "allow_baudrate", str(self.bauds))
@@ -154,29 +162,47 @@ class WaqsApp(QtWidgets.QMainWindow):
                                                                         filter="Text Files (*.txt)")
         if isfile(self.filename):
             fd = open(self.filename, 'r')
-            s = fd.read()
-            self.ui.textBrowser.setText(s)
+            s = fd.readlines()
+            self.cmd_cnt = len(s)
+            self.ui.textBrowser.setText("".join(s))
             self.setWindowTitle(self.filename)
             self.ui.statusbar.showMessage("成功打开配置文件:" + self.filename)
             fd.close()
 
+    def upliad_cfg_action(self):
+
+        t = threading.Thread(target=self.upload_cfg())
+        t.start()
+
     def upload_cfg(self):
         self.com_no = self.ui.comboBox_com.currentText()
         self.baud_rate = int(self.ui.comboBox_baud.currentText())
+        self.timeout = self.ui.doubleSpinBox.value()
+
         if self.filename != "":
+            self.progress = QtWidgets.QProgressDialog("上传配置中...", "取消上传", 0, self.cmd_cnt, self)
+            self.progress.setWindowModality(QtCore.Qt.WindowModal)
+            self.progress.show()
             s = ''
             fd = open(self.filename, 'r')
             cmd = fd.readline()
             res_state = True
+            line_cnt = 1
             while cmd and res_state:
-                if not cmd.startswith('#'):
+                QtCore.QCoreApplication.processEvents()
+                if self.progress.wasCanceled():
+                    break
+                self.progress.setValue(line_cnt)
+                if not cmd.startswith('#') and cmd != '\n':
                     s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' cmd: ' + cmd + '\n'
-                    results, res_state = send_cmd(cmd, self.com_no, self.baud_rate)
+                    results, res_state = send_cmd(cmd, self.com_no, self.baud_rate, self.timeout)
                     for result in results:
                         s += datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ' rep: ' + result + '\n'
                 cmd = fd.readline()
-            self.ui.textBrowser.setText(s)
+                line_cnt += 1
+            self.progress.close()
             fd.close()
+            self.ui.textBrowser.setText(s)
             if res_state:
                 self.ui.statusbar.showMessage("成功上传配置:" + self.filename)
             else:
@@ -185,7 +211,7 @@ class WaqsApp(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    waqs_app = WaqsApp()
+    waqs_app = File2SerialApp()
     waqs_app.show()
     code = app.exec_()
     waqs_app.write_settings()

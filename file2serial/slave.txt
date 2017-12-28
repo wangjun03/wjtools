@@ -1,0 +1,16 @@
+#4_20mA-1-ON:up:60;down:-40!
+#4_20mA-2-ON:up:100;down:0!
+#4_20mA-8-ON:up:80;down:-20!
+Modbus_cancel!
+#modbus!
+#modbus:yes!
+#modbus:1!
+#modbus:01 03 00 00 00 02 c4 0b!
+#modbus:air!
+#modbus:2!
+#modbus:u16,10!
+#modbus:u16,10!
+
+
+4_20mA-2-OFF!
+4_20mA-8-OFF!

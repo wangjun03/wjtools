@@ -84,14 +84,7 @@ def prepare_img():
     for dirpath, dirnames, filenames in os.walk('inputs'):
         for file in filenames:
             fullpath = os.path.join(dirpath, file)
-            img = cv2.imread(fullpath, 0)
-            # img = cv2.medianBlur(img, 5)
-            kernel = np.ones((2, 2), np.uint8)
-            img = cv2.bilateralFilter(img, 9, 75, 75)
-
-            img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2)
-
-            img = cv2.erode(img, kernel, iterations=1)
+            img = pre_one_img(fullpath)
 
             cv2.imwrite('outputs/' + str(file), img)
             plt.figure(i)
@@ -104,12 +97,39 @@ def prepare_img():
     plt.show()
 
 
-# cv2.imshow('image', img)
-# cv2.waitKey(10000)
-# cv2.destroyAllWindows()
+def pre_one_img(origin_file):
+    threshold_img = cv2.imread(origin_file, 0)
+    kernel = np.ones((2, 2), np.uint8)
+    threshold_img = cv2.bilateralFilter(threshold_img, 9, 75, 75)
+
+    threshold_img = cv2.adaptiveThreshold(threshold_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 2)
+
+    threshold_img = cv2.erode(threshold_img, kernel, iterations=1)
+    return threshold_img
 
 
 def eval_one(img_in, x_s, x_m, y_s, y_b, y_m, threshold_rate):
+    bit0 = np.sum(img_in[0:y_s, x_s:x_s + x_m].flatten())
+    bit1 = np.sum(img_in[y_s:y_s + y_b, 0:x_s].flatten())
+    bit2 = np.sum(img_in[y_s:y_s + y_b, x_s + x_m:2 * x_s + x_m].flatten())
+    bit3 = np.sum(img_in[y_s + y_b:y_s + y_b + y_m, x_s:x_s + x_m].flatten())
+    bit4 = np.sum(img_in[y_s + y_b + y_m:y_s + 2 * y_b + y_m, 0:x_s].flatten())
+    bit5 = np.sum(img_in[y_s + y_b + y_m:y_s + 2 * y_b + y_m, x_s + x_m:2 * x_s + x_m].flatten())
+    bit6 = np.sum(img_in[y_s + 2 * y_b + y_m:2 * y_s + 2 * y_b + y_m, x_s:x_s + x_m].flatten())
+    img = img_in.copy()
+    cv2.rectangle(img, (x_s, 0), (x_s + x_m, y_s), (0, 255, 255), 2)
+    cv2.rectangle(img, (0, y_s), (x_s, y_s + y_b), (0, 255, 255), 2)
+    cv2.rectangle(img, (x_s + x_m, y_s), (2 * x_s + x_m, y_s + y_b), (0, 255, 255), 2)
+    cv2.rectangle(img, (x_s, y_s + y_b), (x_s + x_m, y_s + y_b + y_m), (0, 255, 255), 2)
+    cv2.rectangle(img, (0, y_s + y_b + y_m), (x_s, y_s + 2 * y_b + y_m), (0, 255, 255), 2)
+    cv2.rectangle(img, (x_s + x_m, y_s + y_b + y_m), (2 * x_s + x_m, y_s + 2 * y_b + y_m), (0, 255, 255), 2)
+    cv2.rectangle(img, (x_s, y_s + 2 * y_b + y_m), (x_s + x_m, 2 * y_s + 2 * y_b + y_m), (0, 255, 255), 2)
+    plt.figure(0)
+    plt.imshow(img)
+    plt.xticks([]), plt.yticks([])
+    plt.show()
+
+    print(bit0, bit1, bit2, bit3, bit4, bit5, bit6)
     bit0 = np.sum(img_in[0:y_s, x_s:x_s + x_m].flatten()) < ((y_s * x_m) * 255 * threshold_rate)  # 50000
     bit1 = np.sum(img_in[y_s:y_s + y_b, 0:x_s].flatten()) < ((y_b * x_s) * 255 * threshold_rate)  # 50000
     bit2 = np.sum(img_in[y_s:y_s + y_b, x_s + x_m:2 * x_s + x_m].flatten()) < (
@@ -122,7 +142,6 @@ def eval_one(img_in, x_s, x_m, y_s, y_b, y_m, threshold_rate):
             (y_b * x_s) * 255 * threshold_rate)  # 50000
     bit6 = np.sum(img_in[y_s + 2 * y_b + y_m:2 * y_s + 2 * y_b + y_m, x_s:x_s + x_m].flatten()) < (
             (y_s * x_m) * 255 * threshold_rate)  # 50000
-    # print(bit0, bit1, bit2, bit3, bit4, bit5, bit6)
     result = -1
     if bit0:
         # 0 2 3 5 6 7 8 9
@@ -179,34 +198,50 @@ def eval_one(img_in, x_s, x_m, y_s, y_b, y_m, threshold_rate):
     return result
 
 
-if __name__ == '__main__':
-    origin_file = 'inputs/WechatIMG257.jpeg'
-    threshold_file = 'outputs/WechatIMG257.jpeg'
+def dmr_single(origin_file, digis_x1=325, digis_y1=340, digis_x2=685, digis_y2=440, digi_w=45, x_s=13, x_m=19, y_m=9,
+               y_s=18, y_b=27, threshold_rate=0.7):
     origin_img = cv2.imread(origin_file, cv2.IMREAD_COLOR)
-    img = cv2.imread(threshold_file, 0)
+    img = pre_one_img(origin_file)
+    cv2.imwrite('threshold.jpg', img)
     # cv2.rectangle(img, (digis_x1, digis_y1), (digis_x2, digis_y2), (0, 255, 255), 2)
-    digis_x1 = 325
-    digis_y1 = 340
-    digis_x2 = 685
-    digis_y2 = 440
-    digi_w = 45
-    x_s = 13
-    x_m = 19
-    y_m = 9
-    y_s = 18
-    y_b = 27
 
     for i in range(int((digis_x2 - digis_x1) / digi_w)):
         digi_img = img[digis_y1:digis_y2, digis_x1 + i * digi_w:digis_x1 + (i + 1) * digi_w]
-        ret = eval_one(digi_img, x_s, x_m, y_s, y_b, y_m, 0.7)
+        ret = eval_one(digi_img, x_s, x_m, y_s, y_b, y_m, threshold_rate)
         if ret >= 0:
             cv2.rectangle(origin_img, (digis_x1 + i * digi_w, digis_y1), (digis_x1 + (i + 1) * digi_w, digis_y2),
-                          (0, 255, 255), 2)
+                          (255, 255, 0), 2)
             cv2.putText(origin_img, str(ret), (digis_x1 + i * digi_w, digis_y1), cv2.FONT_HERSHEY_SIMPLEX, 2,
-                        (0, 255, 255), 2)
+                        (255, 255, 0), 2)
 
     cv2.imwrite('output.jpg', origin_img)
     plt.figure(0)
     plt.imshow(origin_img)
     plt.xticks([]), plt.yticks([])
     plt.show()
+
+
+if __name__ == '__main__':
+    # input_file = 'inputs/WechatIMG257.jpeg'
+    # dmr_single(input_file, digis_x1=325, digis_y1=340, digis_x2=685, digis_y2=440, digi_w=45, x_s=13, x_m=19, y_m=9,
+    #            y_s=18, y_b=27)
+    input_file = 'inputs/WechatIMG257.jpeg'
+    origin_img = cv2.imread(input_file, cv2.IMREAD_COLOR)
+    # pt1 = np.float32([[384, 290], [880, 290], [404, 430], [880, 430]])
+    # pt2 = np.float32([[0, 0], [476, 0], [0, 140], [476, 140]])
+    # matrix = cv2.getPerspectiveTransform(pt1, pt2)
+    # warp_img = cv2.warpPerspective(origin_img, matrix, (476, 140))
+    # cv2.imwrite('inputs/WechatIMG2189-1.jpeg', warp_img)
+    # cv2.rectangle(origin_img, (404, 290), (880, 430), (0, 255, 255), 2)
+    gray = pre_one_img(input_file)
+    orb = cv2.ORB.create()
+    kp, des = orb.detectAndCompute(gray, None)
+    img = cv2.drawKeypoints(gray, kp, origin_img, color=(0, 255, 0), flags=0)
+
+    plt.figure(0)
+    plt.imshow(origin_img)
+    plt.xticks([]), plt.yticks([])
+    plt.show()
+    # input_file = 'inputs/WechatIMG2189-1.jpeg'
+    # dmr_single(input_file, digis_x1=0, digis_y1=0, digis_x2=476, digis_y2=140, digi_w=68, x_s=20, x_m=28, y_m=13,
+    #            y_s=25, y_b=38)

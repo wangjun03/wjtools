@@ -3,8 +3,7 @@
 # @Author  : Wang Jun
 # @Contact: wangjun@tsingcon.com
 # @Date  : 2017/12/6
-# @license : Copyright(C), Beijing Tsing Con Technology Co., Ltd.
-# @Desc  : 
+# @Desc  :
 # -*- coding:utf-8 -*-
 import sys
 import os

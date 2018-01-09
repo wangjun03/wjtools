@@ -5,3 +5,6 @@ dist
 build
 f2s.exe
 f2s
+dmr/inputs
+dmr/outputs
+dmr/thresholds

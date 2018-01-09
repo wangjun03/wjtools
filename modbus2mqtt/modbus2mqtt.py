@@ -3,8 +3,7 @@
 # @Author  : Wang Jun
 # @Contact: wangjun@tsingcon.com
 # @Date  : 2017/12/28
-# @license : Copyright(C), Beijing Tsing Con Technology Co., Ltd.
-# @Desc  : 
+# @Desc  :
 import serial
 import json
 import modbus_tk.utils
@@ -149,4 +148,3 @@ if __name__ == "__main__":
         logger.info("used time: "+str(used_time)+"s")
         if used_time < freq * 60:
             time.sleep(freq * 60 - used_time)
-

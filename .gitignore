@@ -8,3 +8,8 @@ f2s
 dmr/inputs
 dmr/outputs
 dmr/thresholds
+dmr/logs
+dmr/data/thresholds
+dmr/data/inputs
+dmr/data/outputs
+dmr/data/cnn_model
